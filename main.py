@@ -1,26 +1,31 @@
-from playsound import playsound #Ses dosyalarını çalmak için
-from gtts import gTTS # Yazıyı sese çevirmek için
-import speech_recognition as sr # Sesi tanımak için
-import pyaudio #
-import os # İşletim sistemi ile ilgili işlemleri yapmamıza sağlayan kütüphane
-import time # Zaman için
-import locale # Yerel zaman için
-from datetime import datetime
-import random
-from random import choice 
-import webbrowser
-from random import randint
+import locale  # Yerel zaman için
+import os  # İşletim sistemi ile ilgili işlemleri yapmamıza sağlayan kütüphane
+import random # Rastgele değer atayabilmek için
+import time  # Zaman için
+import webbrowser # Tarayıcıyı açabilmek için
+from datetime import datetime # Tarihi almak için
+from turtle import title
+
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.firefox.service import Service
+import speech_recognition as sr  # Sesi tanımak için
+from gtts import gTTS  # Yazıyı sese çevirmek için
+from playsound import playsound  # Ses dosyalarını çalmak için
+from selenium.webdriver.common.by import By
+
 #tts : text to speech kısaltması bunu ingilizce kullanmayı tercih ettim
 #audio genel ses için bunu ,
+#voice mikrofondan gelen ses için bunu
 #Asistanın sesi için ise voice değişken ismi verdim
-locale.setlocale(locale.LC_TIME, 'tr_TR.UTF-8') #TR zamanını ekledim
+locale.setlocale(locale.LC_TIME, 'tr_TR.UTF-8') #TR zaman dilimini ekledim
 
 r = sr.Recognizer()# Ses tanıma
 current_datetime = datetime.now() # Anlık tarih almak için
 
 
 def kaydet(soyle=False):
-    voice ="" # Aşşağıda dediğimizi anlayamayınca voice değişkenşne değer atayamadığı için hata verip sonlanmaması için 
+    voice ="" # Aşşağıda dediğimizi anlayamayınca voice değişkenine değer atayamadığı için hata verip sonlanmaması için
 
     with sr.Microphone() as source: # Sesi varsayılan aygıttan alıyorum
         if soyle:
@@ -36,20 +41,22 @@ def kaydet(soyle=False):
     
 
 def yanitla(voice):
-    if "x Asistan" in voice:
-        voice = kaydet()
-        
-            
+                  
         if "merhaba" in voice:
             konus("merhaba")
-        if "selam" in voice:
+            print("Asistan:Merhaba")
+        elif "selam" in voice:
             konus("selam")
+            print("Asistan: Selam")
         if  "nasılsın" in voice:
             konus("İyiyim sen nasılsın")
+            print("Asistan: İyiyim sen nasılsın")
         if "teşekkür ederim" in voice or "teşekkürler" in voice :
             konus("rica ederim")
-        if "görüşürüz" in voice:
+            print("Asistan: Rica Ederim")
+        if "görüşürüz" in voice or "kapan" in voice:
             konus("görüşürüz")
+            print("Görüşürüz")
             exit()
         if "bugün ayın kaçı" in voice :
             gun = current_datetime.day  
@@ -87,56 +94,62 @@ def yanitla(voice):
             saat = datetime.now().strftime("%H:%M")
             secenekler = random.choice(secenekler)
             konus(str(secenekler + saat)) 
-        if "google'da ara" in voice:
-
+        if "google'a gir" in voice:
+            devam_et = True
             konus("Ne aramamı istersin?")
-            arama = kaydet()
-            url = "https://www.google.com/search?q={}".format(arama) # Arama yapmak için
-            webbrowser.get().open(url) #Yukarda oluşturduğumuz url'i google'da aratıyorum
-            konus("{} için Google'da bulduklarımı listeliyorum".format(arama))
-        if "sayı tahmin oyunu oluştur" in voice:
-            tahmin_oyunu()
+            while devam_et:
 
-        
-        
+                arama = kaydet()
+                url = "https://www.google.com/search?q={}".format(arama) # Arama yapmak için
+                webbrowser.get().open(url) #Yukarda oluşturduğumuz url'i google'da aratıyorum
+                konus("{} için Google'da bulduklarımı listeliyorum".format(arama))
+                konus("Tekrar Arama Yapmak ister misin")
+                arama = kaydet()
+                if arama == "Evet":
+                    devam_et = True
+                    konus("Ne aramamı istersin?")
+                elif arama =="Hayır":
+                    devam_et = False
+                    konus("Peki")
+        if "not et" in voice or "not al" in voice:
+            konus("Dosya ismi ne olsun")
+            txtdosyasi = kaydet() + ".txt"
+            konus("Ne kaydetmek istiyorsun")
+            txt = kaydet()
+            d = open(txtdosyasi, "w", encoding="utf-8") # Ascii veya başka bir şey olarak çalıştırmaması
+            # için ve türkçe karakterler olduğu için utf-8 ekliyorum
+            konus("Notunu kaydettim")
+            d.writelines(txt)
+            d.close()
+            return
+        if "youtube'u aç" in voice or "müzik aç" in voice or "video aç" in voice:
+            devam_et=True
+            konus("Ne açmamı istersin")
+            while devam_et:
+                istek = kaydet()
+                try:
+                    konus("{} açılıyor".format(istek))
+                    url = "https://www.youtube.com/results?search_query={}".format(istek)
+                    tarayici = webdriver.Firefox()
+                    tarayici.get(url)
+                    tarayici.find_element(By.XPATH, "//*[@id='video-title']/yt-formatted-string").click()
+                    time.sleep(1)
+                    konus("Bir daha {}mak ister misin".format(istek))
+                    istek = kaydet()
+                    if istek == "Evet":
+                        konus("Ne açmamı istersin")
+                        continue
+                    elif istek == "Hayır":
+                        konus("youtube'dan çıkıyorum")
+                        break
+
+                except sr.UnknownValueError:  # Söylediğimiz Kelimeleri anlayamazsa diye
+                    konus("Anlayamadım")
+                    print("Asistan: Anlayamadım")
+                    continue
 
 
-kolaySeviyeHak = 10
-zorSeviyeHak = 5
 
-def zorluk():
-    konus("Kolay mı yoksa Zor seviye mi tercih edersiniz")
-    tercih = kaydet()
-    if tercih =="kolay":
-        konus("Oyunu kazanabilmek için 10 hakkın var")
-        return kolaySeviyeHak
-    elif tercih == "zor":
-        konus("oyunu kazanabilmek için 5 hakkın var")
-        return zorSeviyeHak
-
-def tahmin_oyunu():
-    konus("1 ile 100 arasından bir sayıyı aklımdan tuttum")
-    rastgele_sayi = randint(1,100)
-    devam_et = True
-    kalan_hak = zorluk()
-    while devam_et:
-        konus("Aklımdan tuttuğum sayıyı tahmin et")
-        tahmin = int(kaydet())
-        if tahmin > rastgele_sayi:
-            kalan_hak -=1
-            konus("Fazla attın,daha küçük bir sayı seç. {} adet hakkın kaldı".format(kalan_hak))
-        elif tahmin < rastgele_sayi:
-            kalan_hak -=1
-            konus("Ufak attın, daha büyük bir sayı seç. {} adet hakkın kaldı".format(kalan_hak))
-        if kalan_hak == 0:
-            konus("Hakkın doldu, kaybettin")
-            devam_et = False 
-            konus("Yeni oyun oynamak ister misin") 
-            yeni_oyun = kaydet()
-            if yeni_oyun == "evet":
-                tahmin_oyunu()
-            else:
-                devam_et = False      
 
 
 
@@ -150,7 +163,7 @@ def konus(metin):
      os.remove(dosya) # İşimiz bitince ses dosyasını silmesi için bu da
 
 playsound("giris.mp3")
-konus("Hoşgeldin")
+
 
 
 while True:
